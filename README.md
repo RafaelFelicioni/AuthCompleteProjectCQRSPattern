@@ -1,4 +1,4 @@
-Para rodar postgres no docker
+to run postgres on docker
  docker run -d --name postgres-dev -e POSTGRES_USER=appuser -e POSTGRES_PASSWORD=apppass -e POSTGRES_DB=appserviceproviderdb -p 5432:5432 postgres:16
 
 to run migrations
