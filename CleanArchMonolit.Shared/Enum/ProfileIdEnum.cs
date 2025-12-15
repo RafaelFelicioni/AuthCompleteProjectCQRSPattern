@@ -1,0 +1,3 @@
+﻿namespace CleanArchMonolit.Shared.Enum
+{
+}
