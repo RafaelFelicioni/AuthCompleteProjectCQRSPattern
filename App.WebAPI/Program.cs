@@ -1,7 +1,6 @@
 using App.WebAPI.Utils;
 using CleanArchMonolit.Application.Auth.Login.Commands.Login;
 using CleanArchMonolit.Application.Auth.Validators.Behaviors;
-using CleanArchMonolit.Infrastructure.PoliticalParty.Data;
 using CleanArchMonolit.Infrastruture.Data;
 using CleanArchMonolit.Shared.Extensions;
 using CleanArchMonolit.Shared.Middlewares;
@@ -12,6 +11,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json;
 using static CleanArchMonolit.Application.Auth.Login.Commands.Login.LoginCommandHandler;
@@ -20,24 +20,44 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "My API",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Digite: Bearer {seu token JWT}"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")).UseSnakeCaseNamingConvention());
 
-builder.Services.AddDbContext<PoliticalPartyDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")).UseSnakeCaseNamingConvention());
-
-builder.Services.AddAuthorization(options =>
-{
-    var permissions = new[] { "teste" }; // TODO RAFAEL: colocar todas as permissões aqui
-
-    foreach (var permission in permissions)
-    {
-        options.AddPolicy(permission, policy =>
-            policy.Requirements.Add(new PermissionRequirement(permission)));
-    }
-});
+builder.Services.AddAuthorization();
 builder.Services.Configure<JwtSettings>(
 builder.Configuration.GetSection("JwtSettings"));
 
@@ -55,6 +75,8 @@ builder.Services.AddAuthentication(options =>
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtSettings.Secret))
         };
@@ -93,6 +115,10 @@ builder.AddClients();
 builder.AddServices();
 builder.AddRepositories();
 var app = builder.Build();
+
+app.ConfigurePermissions();
+
+
 app.UseRouting();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseAuthentication();

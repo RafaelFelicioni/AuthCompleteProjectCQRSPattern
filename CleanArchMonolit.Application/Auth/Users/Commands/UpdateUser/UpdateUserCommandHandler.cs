@@ -1,7 +1,9 @@
 ﻿using CleanArchMonolit.Application.Auth.Repositories.UserRepositories;
 using CleanArchMonolit.Application.Auth.Validators;
+using CleanArchMonolit.Application.HttpContext;
 using CleanArchMonolit.Shared.Responses;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,14 +16,23 @@ namespace CleanArchMonolit.Application.Auth.Users.Commands.UpdateUser
     public sealed class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, Result<bool>>
     {
         private readonly IUserRepository _userRepository;
+        private readonly IHttpContextService _httpContext;
 
-        public UpdateUserCommandHandler(IUserRepository userRepository)
+        public UpdateUserCommandHandler(IUserRepository userRepository, IHttpContextService httpContext)
         {
             _userRepository = userRepository;
+            _httpContext = httpContext;
         }
 
         public async Task<Result<bool>> Handle(UpdateUserCommand command, CancellationToken ct)
         {
+            var isAdmin = _httpContext.IsAdmin;
+            var userId = _httpContext.UserId;
+            if (!isAdmin && userId != command.Id)
+            {
+                return Result<bool>.Fail("Ocorreu um erro ao atualizar o usuário");
+            }
+
             var emailTaken = await _userRepository
                 .FirstOrDefaultAsync(x => x.Id != command.Id && x.Mail == command.Email);
             if (emailTaken != null)

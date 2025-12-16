@@ -13,6 +13,7 @@ namespace App.WebAPI.Auth.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -23,6 +24,7 @@ namespace App.WebAPI.Auth.Controllers
         }
 
         [HttpPost("Create")]
+        [Authorize(Policy = "cu")]
         public async Task<IActionResult> Create([FromBody] CreateUserCommand command)
         {
             var result = await _mediator.Send(command);

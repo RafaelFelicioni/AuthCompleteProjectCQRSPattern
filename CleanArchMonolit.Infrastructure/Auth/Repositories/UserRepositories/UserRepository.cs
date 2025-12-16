@@ -25,12 +25,13 @@ namespace CleanArchMonolit.Infrastructure.Auth.Repositories.UserRepositories
             return await GetDbSet()
                 .Include(u => u.Profile)// se precisar do perfil no JWT
                 .Include(x => x.UserPermissions)
+                .ThenInclude(x => x.SystemPermission)
                 .FirstOrDefaultAsync(u => u.Mail == email);
         }
 
         public async Task<User> GetById(int id)
         {
-            return await GetDbSet().Include(x => x.UserPermissions).FirstOrDefaultAsync(x => x.Id == id);
+            return await GetDbSet().Include(x => x.UserPermissions).ThenInclude(x => x.SystemPermission).FirstOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<bool> CheckIfTaxIdExists(string taxId)

@@ -10,11 +10,14 @@ using CleanArchMonolit.Infrastructure.Auth.Repositories.ProfileRepositories;
 using CleanArchMonolit.Infrastructure.Auth.Repositories.UserRepositories;
 using CleanArchMonolit.Infrastructure.Auth.Services.TokenService;
 using CleanArchMonolit.Infrastructure.DataShared.HttpContextService;
-using CleanArchMonolit.Infrastructure.PoliticalParty.Repositories.PoliticalPartyRepository;
+using CleanArchMonolit.Infrastruture.Data;
 using CleanArchMonolit.Shared.Extensions;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System;
 
 namespace App.WebAPI.Utils
 {
@@ -52,10 +55,29 @@ namespace App.WebAPI.Utils
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
             #endregion
+        }
 
-            #region PoliticalPartyRepos
-            builder.Services.AddScoped<IPoliticalPartyRepository, PoliticalPartyRepository>();
-            #endregion
+        public static void ConfigurePermissions(this WebApplication app)
+        {
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+                var authOptions = app.Services
+                    .GetRequiredService<IOptions<AuthorizationOptions>>()
+                    .Value;
+
+                var permissions = db.Permissions
+                    .AsNoTracking()
+                    .Select(p => p.PermissionCode)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var permission in permissions)
+                {
+                    authOptions.AddPolicy(permission, policy =>
+                        policy.Requirements.Add(new PermissionRequirement(permission)));
+                }
+            }
         }
     }
 }

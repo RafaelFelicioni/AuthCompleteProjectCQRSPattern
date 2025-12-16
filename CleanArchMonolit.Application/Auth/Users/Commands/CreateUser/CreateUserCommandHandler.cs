@@ -36,8 +36,6 @@ namespace CleanArchMonolit.Application.Auth.Users.Commands.CreateUser
 
         public async Task<Result<bool>> Handle(CreateUserCommand command, CancellationToken ct)
         {
-            var isAdmin = _httpContext.IsAdmin;
-
             var user = await _userRepository.GetByEmailAsync(command.Email);
             if (user != null)
                 return Result<bool>.Fail("Usuário já existe na base de dados com este email");
